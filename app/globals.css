@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFFFF;
+  --surface2: #EAE3D5;
+  --fg: #2A2620;
+  --dim: #857B6B;
+  --line: #D8CFBF;
+  --accent: #C26A4A;
+  --accent-soft: #F2DFD5;
+  --accent-ink: #7A3A24;
+  --ok: #5C7A4A;
+  --ok-soft: #E1ECD7;
+}
+
+.dark {
+  --bg: #1A1814;
+  --surface: #231F19;
+  --surface2: #2C2820;
+  --fg: #F4EFE6;
+  --dim: #9A8E78;
+  --line: #3A3528;
+  --accent: #E08962;
+  --accent-soft: #3A2A22;
+  --accent-ink: #F0C2A8;
+  --ok: #9CBA88;
+  --ok-soft: #2A3220;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, textarea, select {
+  outline: none;
+}
+
+input[type="password"] {
+  letter-spacing: 0.2em;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
