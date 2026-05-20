@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { ADMIN_TIMES, ADMIN_COLS, ADMIN_BOOKINGS, AdminBooking, BookingKind } from '@/lib/data'
 import Icon from '@/components/ui/Icon'
 
+const GRID_HOURS = [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]
 const CELL_H = 52
+
+type BookingKind = 'private' | 'group' | 'massage' | string
 
 function colorFor(kind: BookingKind) {
   if (kind === 'private') return { bg: 'var(--accent-soft)', ink: 'var(--accent-ink)', bar: 'var(--accent)' }
@@ -13,33 +15,40 @@ function colorFor(kind: BookingKind) {
   return { bg: 'var(--surface2)', ink: 'var(--dim)', bar: 'var(--line)' }
 }
 
-interface BookingTooltipProps {
-  booking: AdminBooking
-  onClose: () => void
+interface GridBooking {
+  id: string
+  clientName: string
+  teacherName: string
+  serviceName: string
+  studioId: string
+  startTime: string
+  endTime: string
+  kind: string
 }
 
-function BookingTooltip({ booking, onClose }: BookingTooltipProps) {
-  const c = colorFor(booking.kind)
-  return (
-    <div
-      className="absolute z-50 w-56 rounded-xl p-3 shadow-modal text-[12px]"
-      style={{ background: 'var(--surface)', border: '1px solid var(--line)', top: 8, left: 8 }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-medium" style={{ color: c.bar }}>{booking.label}</span>
-        <button onClick={onClose}><Icon name="x" size={14} color="var(--dim)" /></button>
-      </div>
-      <div style={{ color: 'var(--dim)' }}>
-        <div>Client: <span style={{ color: 'var(--fg)' }}>{booking.client}</span></div>
-        <div>Teacher: <span style={{ color: 'var(--fg)' }}>{booking.teacher}</span></div>
-        <div>Time: <span style={{ color: 'var(--fg)' }}>{ADMIN_TIMES[booking.startIdx]} – {ADMIN_TIMES[Math.min(booking.startIdx + booking.span, ADMIN_TIMES.length - 1)]}</span></div>
-      </div>
-    </div>
-  )
+interface Studio {
+  id: string
+  name: string
+  kind: string
 }
 
-export default function AdminGrid() {
+interface Props {
+  studios: Studio[]
+  bookings: GridBooking[]
+}
+
+function ictHour(iso: string) {
+  return (new Date(iso).getUTCHours() + 7) % 24
+}
+
+function durationHours(startIso: string, endIso: string) {
+  return Math.max(1, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 3_600_000))
+}
+
+export default function AdminGrid({ studios, bookings }: Props) {
   const [active, setActive] = useState<string | null>(null)
+
+  const cols = studios.length > 0 ? studios : [{ id: '', name: 'Studio', kind: 'yoga' }]
 
   return (
     <div
@@ -48,25 +57,21 @@ export default function AdminGrid() {
         border: '1px solid var(--line)',
         background: 'var(--surface)',
         display: 'grid',
-        gridTemplateColumns: '64px 1fr 1fr 1fr',
+        gridTemplateColumns: `64px repeat(${cols.length}, 1fr)`,
       }}
     >
-      {/* header row */}
+      {/* header */}
       <div style={{ borderBottom: '1px solid var(--line)' }} />
-      {ADMIN_COLS.map((c, i) => (
-        <div
-          key={i}
-          className="px-4 py-3.5"
-          style={{ borderBottom: '1px solid var(--line)', borderLeft: '1px solid var(--line)' }}
-        >
-          <div className="font-serif text-[17px]">{c.studio}</div>
-          <div className="text-[11px] uppercase tracking-[0.5px] mt-0.5" style={{ color: 'var(--dim)' }}>{c.subtitle}</div>
+      {cols.map(s => (
+        <div key={s.id} className="px-4 py-3.5" style={{ borderBottom: '1px solid var(--line)', borderLeft: '1px solid var(--line)' }}>
+          <div className="font-serif text-[17px]">{s.name}</div>
+          <div className="text-[11px] uppercase tracking-[0.5px] mt-0.5" style={{ color: 'var(--dim)' }}>{s.kind}</div>
         </div>
       ))}
 
-      {/* time rows */}
-      {ADMIN_TIMES.map((time, rowIdx) => (
-        <div key={time} className="contents">
+      {/* rows */}
+      {GRID_HOURS.map((hour, rowIdx) => (
+        <div key={hour} className="contents">
           <div
             className="flex items-start justify-end pr-2.5 pt-1 font-mono text-[11px]"
             style={{
@@ -75,14 +80,15 @@ export default function AdminGrid() {
               height: CELL_H,
             }}
           >
-            {time}
+            {`${hour.toString().padStart(2, '0')}:00`}
           </div>
-          {ADMIN_COLS.map((_, colIdx) => {
-            const booking = ADMIN_BOOKINGS.find(b => b.col === colIdx && b.startIdx === rowIdx)
+          {cols.map((studio, colIdx) => {
+            const booking = bookings.find(b => b.studioId === studio.id && ictHour(b.startTime) === hour)
             const key = `${colIdx}-${rowIdx}`
+            const isActive = active === key
             return (
               <div
-                key={colIdx}
+                key={studio.id + hour}
                 className="relative"
                 style={{
                   borderTop: rowIdx > 0 ? '1px solid var(--line)' : undefined,
@@ -93,28 +99,49 @@ export default function AdminGrid() {
               >
                 {booking && (() => {
                   const c = colorFor(booking.kind)
-                  const isActive = active === key
+                  const span = durationHours(booking.startTime, booking.endTime)
+                  const startMin = new Date(booking.startTime).getUTCMinutes()
+                  const topOffset = (startMin / 60) * CELL_H
                   return (
                     <>
                       <button
                         onClick={() => setActive(isActive ? null : key)}
-                        className="absolute inset-1 rounded-lg text-left text-[11px] flex flex-col justify-between"
+                        className="absolute left-1 right-1 rounded-lg text-left text-[11px] flex flex-col justify-between"
                         style={{
-                          height: CELL_H * booking.span - 8,
+                          top: 4 + topOffset,
+                          height: CELL_H * span - 8,
                           background: c.bg,
                           color: c.ink,
                           borderLeft: `3px solid ${c.bar}`,
                           padding: '6px 8px',
+                          zIndex: 10,
                         }}
                       >
                         <div>
-                          <div className="font-medium truncate">{booking.client}</div>
-                          <div className="opacity-70 mt-0.5 truncate">{booking.label}</div>
+                          <div className="font-medium truncate">{booking.clientName}</div>
+                          <div className="opacity-70 mt-0.5 truncate">{booking.serviceName}</div>
                         </div>
-                        <div className="opacity-60 text-[10px]">{booking.teacher}</div>
+                        <div className="opacity-60 text-[10px]">{booking.teacherName}</div>
                       </button>
                       {isActive && (
-                        <BookingTooltip booking={booking} onClose={() => setActive(null)} />
+                        <div
+                          className="absolute z-50 w-52 rounded-xl p-3 shadow-lg text-[12px]"
+                          style={{ background: 'var(--surface)', border: '1px solid var(--line)', top: 8, left: 8 }}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium" style={{ color: c.bar }}>{booking.serviceName}</span>
+                            <button onClick={() => setActive(null)}><Icon name="x" size={14} color="var(--dim)" /></button>
+                          </div>
+                          <div style={{ color: 'var(--dim)' }}>
+                            <div>Client: <span style={{ color: 'var(--fg)' }}>{booking.clientName}</span></div>
+                            <div>Teacher: <span style={{ color: 'var(--fg)' }}>{booking.teacherName}</span></div>
+                            <div>Time: <span style={{ color: 'var(--fg)' }}>
+                              {`${ictHour(booking.startTime).toString().padStart(2,'0')}:00`}
+                              {' – '}
+                              {`${ictHour(booking.endTime).toString().padStart(2,'0')}:00`}
+                            </span></div>
+                          </div>
+                        </div>
                       )}
                     </>
                   )

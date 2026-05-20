@@ -1,117 +1,75 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { getIronSession } from 'iron-session'
+import { sessionOptions, type SessionData } from '@/lib/session'
+import prisma from '@/lib/db'
+import AdminCalendarClient from '@/components/admin/CalendarClient'
 
-import { useState } from 'react'
-import AdminGrid from '@/components/admin/AdminGrid'
-import FilterPill from '@/components/admin/FilterPill'
-import ManualBookingModal from '@/components/admin/ManualBookingModal'
-import Icon from '@/components/ui/Icon'
+function startOfDay(iso: string) {
+  const d = new Date(iso + 'T00:00:00.000Z')
+  return d
+}
+function endOfDay(iso: string) {
+  return new Date(iso + 'T23:59:59.999Z')
+}
 
-const DAYS = ['Sun, 25 May', 'Mon, 26 May', 'Tue, 27 May', 'Wed, 28 May', 'Thu, 29 May']
-const BRANCHES = ['Sukhumvit', 'Thonglor', 'Sathorn']
-const TEACHERS_LIST = ['Any teacher', 'Mai L.', 'Nina P.', 'Pim S.', 'Kanya R.', 'June O.']
-const VIEWS = ['Day', 'Week', 'Month'] as const
+export default async function AdminCalendarPage({
+  searchParams,
+}: {
+  searchParams: { date?: string; branch?: string }
+}) {
+  const session = await getIronSession<SessionData>(cookies(), sessionOptions)
+  if (!session.memberId || !session.isAdmin) redirect('/login')
 
-export default function AdminCalendarPage() {
-  const [dayIdx, setDayIdx] = useState(1)
-  const [branch, setBranch] = useState('Sukhumvit')
-  const [teacher, setTeacher] = useState('Any teacher')
-  const [view, setView] = useState<typeof VIEWS[number]>('Day')
-  const [showModal, setShowModal] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const today = new Date().toISOString().slice(0, 10)
+  const dateStr = searchParams.date ?? today
 
-  const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
+  const branches = await prisma.branch.findMany({ orderBy: { name: 'asc' } })
+  const branchSlug = searchParams.branch ?? branches[0]?.slug ?? 'sukhumvit'
+  const branch = await prisma.branch.findUnique({
+    where: { slug: branchSlug },
+    include: { studios: { orderBy: { name: 'asc' } } },
+  })
+  if (!branch) redirect('/admin/calendar')
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      branchId: branch.id,
+      startTime: { gte: startOfDay(dateStr), lte: endOfDay(dateStr) },
+      status: { not: 'cancelled' },
+    },
+    include: {
+      member: true, service: true, teacher: true, studio: true,
+    },
+    orderBy: { startTime: 'asc' },
+  })
+
+  const teachers = await prisma.teacher.findMany({ orderBy: { name: 'asc' } })
+  const members = await prisma.member.findMany({ where: { isAdmin: false }, include: { packages: { where: { remaining: { gt: 0 } }, take: 1 } } })
+  const services = await prisma.service.findMany()
 
   return (
-    <div className="flex flex-col h-full">
-      {/* topbar */}
-      <div
-        className="flex items-center gap-4 px-7 py-[18px] shrink-0"
-        style={{ borderBottom: '1px solid var(--line)' }}
-      >
-        <div>
-          <div className="font-serif text-[26px] tracking-[-0.4px]">Master Calendar</div>
-          <div className="text-[12px] mt-0.5" style={{ color: 'var(--dim)' }}>
-            {DAYS[dayIdx]} — Day view
-          </div>
-        </div>
-
-        {/* date nav */}
-        <div
-          className="flex items-center gap-2 ml-6 px-2.5 py-1.5 rounded-full"
-          style={{ border: '1px solid var(--line)' }}
-        >
-          <button onClick={() => setDayIdx(d => Math.max(0, d - 1))}>
-            <Icon name="back" size={14} color="var(--dim)" />
-          </button>
-          <span className="text-[12px]">Today</span>
-          <button onClick={() => setDayIdx(d => Math.min(DAYS.length - 1, d + 1))}>
-            <Icon name="chev" size={14} color="var(--dim)" />
-          </button>
-        </div>
-
-        {/* view toggle */}
-        <div
-          className="flex overflow-hidden rounded-lg text-[12px]"
-          style={{ border: '1px solid var(--line)' }}
-        >
-          {VIEWS.map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className="px-3.5 py-1.5"
-              style={{
-                background: view === v ? 'var(--fg)' : 'transparent',
-                color: view === v ? 'var(--bg)' : 'var(--dim)',
-              }}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-
-        <div className="ml-auto flex items-center gap-2.5">
-          <FilterPill label="Branch" options={BRANCHES} value={branch} onChange={setBranch} />
-          <FilterPill label="Teacher" options={TEACHERS_LIST} value={teacher} onChange={setTeacher} />
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px]"
-            style={{ background: 'var(--accent)', color: '#fff' }}
-          >
-            <Icon name="plus" size={14} color="#fff" />
-            New booking
-          </button>
-        </div>
-      </div>
-
-      {/* grid */}
-      <div className="flex-1 p-7 min-h-0 overflow-hidden">
-        <AdminGrid />
-      </div>
-
-      {/* manual booking modal */}
-      {showModal && (
-        <ManualBookingModal
-          onClose={() => setShowModal(false)}
-          onConfirm={() => {
-            setShowModal(false)
-            showToast('Booking created successfully')
-          }}
-        />
-      )}
-
-      {/* toast */}
-      {toast && (
-        <div
-          className="fixed bottom-6 right-6 px-4 py-3 rounded-xl text-[13px] flex items-center gap-2 z-50"
-          style={{ background: 'var(--fg)', color: 'var(--bg)' }}
-        >
-          <Icon name="check" size={16} color="var(--bg)" />
-          {toast}
-        </div>
-      )}
-    </div>
+    <AdminCalendarClient
+      branches={branches.map(b => ({ id: b.id, slug: b.slug, name: b.name }))}
+      currentBranchSlug={branchSlug}
+      currentDate={dateStr}
+      studios={branch.studios.map(s => ({ id: s.id, name: s.name, kind: s.kind }))}
+      bookings={bookings.map(b => ({
+        id: b.id,
+        clientName: b.member?.name ?? '—',
+        teacherName: b.teacher?.name ?? '—',
+        serviceName: b.service.name,
+        serviceSlug: b.service.slug,
+        studioId: b.studioId ?? '',
+        startTime: b.startTime.toISOString(),
+        endTime: b.endTime.toISOString(),
+        status: b.status,
+        kind: b.kind,
+        isInHome: b.isInHome,
+      }))}
+      teachers={teachers.map(t => ({ id: t.id, name: t.name }))}
+      members={members.map(m => ({ id: m.id, name: m.name, phone: m.phone, remaining: m.packages[0]?.remaining ?? 0 }))}
+      services={services.map(s => ({ id: s.id, slug: s.slug, name: s.name, durationMin: s.durationMin }))}
+    />
   )
 }
