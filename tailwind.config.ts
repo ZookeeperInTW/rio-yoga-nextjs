@@ -26,8 +26,8 @@ const config: Config = {
       },
       fontFamily: {
         serif: ['var(--font-serif)', 'Georgia', 'serif'],
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'var(--font-mono)', 'monospace'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       boxShadow: {
         clay: '0 8px 20px rgba(194,106,74,0.35)',

@@ -1,21 +1,25 @@
 import type { Metadata } from 'next'
-import { Instrument_Serif, JetBrains_Mono } from 'next/font/google'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
+import { Cormorant_Garamond, Plus_Jakarta_Sans, Space_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/context/theme-context'
 import DevSwitcher from '@/components/DevSwitcher'
 
-const instrumentSerif = Instrument_Serif({
+const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: '400',
+  weight: ['300', '400', '500', '600'],
   style: ['normal', 'italic'],
   variable: '--font-serif',
 })
 
-const jetbrainsMono = JetBrains_Mono({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '500'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+})
+
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  weight: ['400', '700'],
   variable: '--font-mono',
 })
 
@@ -28,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${instrumentSerif.variable} ${GeistSans.variable} ${GeistMono.variable} ${jetbrainsMono.variable}`}
+      className={`${cormorant.variable} ${jakarta.variable} ${spaceMono.variable}`}
     >
       <body>
         <ThemeProvider>
