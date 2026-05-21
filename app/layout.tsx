@@ -4,6 +4,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { ThemeProvider } from '@/context/theme-context'
+import DevSwitcher from '@/components/DevSwitcher'
 
 const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           {children}
+          <DevSwitcher />
         </ThemeProvider>
       </body>
     </html>
