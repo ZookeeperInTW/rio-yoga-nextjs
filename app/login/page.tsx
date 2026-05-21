@@ -1,28 +1,27 @@
 'use client'
 
-import { useFormState, useFormStatus } from 'react-dom'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { loginAction } from '@/app/actions/auth'
 import Icon from '@/components/ui/Icon'
-import { useState } from 'react'
-
-function SubmitButton() {
-  const { pending } = useFormStatus()
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full flex justify-between items-center px-[22px] py-4 rounded-[14px] disabled:opacity-60 transition-opacity mt-7"
-      style={{ background: 'var(--fg)', color: 'var(--bg)' }}
-    >
-      <span className="font-serif text-[17px]">{pending ? 'Signing in…' : 'Continue'}</span>
-      <Icon name="arrow" size={20} color="var(--bg)" />
-    </button>
-  )
-}
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, null)
+  const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
   const [showPw, setShowPw] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setPending(true)
+    setError(null)
+    const formData = new FormData(e.currentTarget)
+    const result = await loginAction(null, formData)
+    if (result?.error) {
+      setError(result.error)
+      setPending(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'var(--bg)' }}>
@@ -34,7 +33,7 @@ export default function LoginPage() {
           <div className="font-serif text-[26px] tracking-[-0.4px]">RIO Yoga</div>
         </div>
 
-        <form action={formAction} className="px-[26px] flex-1 flex flex-col">
+        <form onSubmit={handleSubmit} className="px-[26px] flex-1 flex flex-col">
           <div className="mt-16 mb-8">
             <div className="font-serif text-[42px] leading-[1.0] tracking-[-0.8px]">
               Welcome<br />
@@ -45,9 +44,9 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {state?.error && (
+          {error && (
             <div className="mb-4 px-4 py-3 rounded-xl text-[13px]" style={{ background: 'var(--accent-soft)', color: 'var(--accent-ink)' }}>
-              {state.error}
+              {error}
             </div>
           )}
 
@@ -60,10 +59,10 @@ export default function LoginPage() {
               <input
                 name="phone"
                 type="tel"
-                defaultValue="81 234 5678"
+                defaultValue="812345678"
                 className="flex-1 bg-transparent font-serif text-[20px]"
                 style={{ color: 'var(--fg)' }}
-                placeholder="81 234 5678"
+                placeholder="812345678"
               />
             </div>
           </div>
@@ -83,12 +82,17 @@ export default function LoginPage() {
                 {showPw ? 'Hide' : 'Show'}
               </button>
             </div>
-            <div className="text-right mt-1.5">
-              <button type="button" className="text-[12px]" style={{ color: 'var(--accent)' }}>Forgot password?</button>
-            </div>
           </div>
 
-          <SubmitButton />
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full flex justify-between items-center px-[22px] py-4 rounded-[14px] disabled:opacity-60 transition-opacity mt-7"
+            style={{ background: 'var(--fg)', color: 'var(--bg)' }}
+          >
+            <span className="font-serif text-[17px]">{pending ? 'Signing in…' : 'Continue'}</span>
+            <Icon name="arrow" size={20} color="var(--bg)" />
+          </button>
 
           <div className="flex items-center gap-3 my-7">
             <div className="flex-1 h-px" style={{ background: 'var(--line)' }} />
@@ -101,12 +105,9 @@ export default function LoginPage() {
               { label: 'Continue with LINE', color: '#06C755' },
               { label: 'Continue with Google', color: 'var(--fg)' },
             ].map(b => (
-              <button
-                key={b.label}
-                type="button"
+              <button key={b.label} type="button"
                 className="w-full flex items-center justify-center gap-2.5 px-[18px] py-3.5 rounded-[14px] text-[14px]"
-                style={{ border: '1px solid var(--line)' }}
-              >
+                style={{ border: '1px solid var(--line)' }}>
                 <div className="w-[18px] h-[18px] rounded-[4px]" style={{ background: b.color }} />
                 {b.label}
               </button>
@@ -115,8 +116,7 @@ export default function LoginPage() {
         </form>
 
         <div className="px-[26px] pb-11 text-center text-[13px]" style={{ color: 'var(--dim)' }}>
-          Demo: <span className="font-mono text-[11px]">+66812345678 / password</span>
-          <br />
+          Demo: <span className="font-mono text-[11px]">+66812345678 / password</span><br />
           Admin: <span className="font-mono text-[11px]">+66900000000 / admin123</span>
         </div>
       </div>
