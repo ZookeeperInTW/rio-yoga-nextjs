@@ -1,4 +1,4 @@
-import type { IronSessionOptions } from 'iron-session'
+import type { SessionOptions } from 'iron-session'
 
 export interface SessionData {
   memberId?: string
@@ -6,7 +6,7 @@ export interface SessionData {
   isAdmin?: boolean
 }
 
-export const sessionOptions: IronSessionOptions = {
+export const sessionOptions: SessionOptions = {
   password: process.env.SESSION_SECRET ?? 'fallback-dev-secret-32-chars-exactly!!',
   cookieName: 'rio-yoga-session',
   cookieOptions: {
