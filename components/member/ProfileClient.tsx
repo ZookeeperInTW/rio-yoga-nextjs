@@ -1,6 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
+import Link from 'next/link'
 import TabBar from './TabBar'
 import Icon from '@/components/ui/Icon'
 import { useTheme } from '@/context/theme-context'
@@ -19,17 +20,17 @@ export default function ProfileClient({ member }: { member: MemberInfo }) {
     {
       title: 'Account',
       items: [
-        { icon: 'user', label: 'Personal details', sub: member.name },
-        { icon: 'bell', label: 'Notifications', sub: 'SMS + email enabled' },
-        { icon: 'money', label: 'Payment methods', sub: 'Visa •••• 4242' },
+        { icon: 'user',     label: 'Personal details', sub: member.name,          href: null    },
+        { icon: 'bell',     label: 'Notifications',    sub: 'SMS + email enabled', href: null    },
+        { icon: 'money',    label: 'Payment methods',  sub: 'Visa •••• 4242',      href: null    },
       ],
     },
     {
       title: 'Bookings',
       items: [
-        { icon: 'calendar', label: 'All bookings', sub: `${member.totalBookings} total` },
-        { icon: 'book', label: 'Package history', sub: `${member.packageCount} package${member.packageCount !== 1 ? 's' : ''} purchased` },
-        { icon: 'clock', label: 'Classes remaining', sub: `${member.remaining} class${member.remaining !== 1 ? 'es' : ''} in active package` },
+        { icon: 'calendar', label: 'All bookings',     sub: `${member.totalBookings} total`,                                      href: '/schedule'  },
+        { icon: 'book',     label: 'Package history',  sub: `${member.packageCount} package${member.packageCount !== 1 ? 's' : ''} purchased`, href: '/packages'  },
+        { icon: 'clock',    label: 'Buy more classes', sub: `${member.remaining} class${member.remaining !== 1 ? 'es' : ''} remaining`,        href: '/packages'  },
       ],
     },
   ]
@@ -54,20 +55,28 @@ export default function ProfileClient({ member }: { member: MemberInfo }) {
           <div key={sec.title} className="px-[22px] mb-6">
             <div className="text-[11px] uppercase tracking-[0.4px] mb-2.5" style={{ color: 'var(--dim)' }}>{sec.title}</div>
             <div className="rounded-[18px] overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              {sec.items.map((item, i) => (
-                <button key={item.label} className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left"
-                  style={{ borderTop: i > 0 ? '1px solid var(--line)' : undefined }}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: 'var(--surface2)' }}>
-                    <Icon name={item.icon} size={16} color="var(--fg)" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[15px]">{item.label}</div>
-                    <div className="text-[12px] mt-0.5" style={{ color: 'var(--dim)' }}>{item.sub}</div>
-                  </div>
-                  <Icon name="chev" size={16} color="var(--dim)" />
-                </button>
-              ))}
+              {sec.items.map((item, i) => {
+                const inner = (
+                  <>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: 'var(--surface2)' }}>
+                      <Icon name={item.icon} size={16} color="var(--fg)" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[15px]">{item.label}</div>
+                      <div className="text-[12px] mt-0.5" style={{ color: 'var(--dim)' }}>{item.sub}</div>
+                    </div>
+                    <Icon name="chev" size={16} color="var(--dim)" />
+                  </>
+                )
+                const cls = "w-full flex items-center gap-3.5 px-4 py-3.5 text-left"
+                const style = { borderTop: i > 0 ? '1px solid var(--line)' : undefined } as React.CSSProperties
+                return item.href ? (
+                  <Link key={item.label} href={item.href} className={cls} style={style}>{inner}</Link>
+                ) : (
+                  <button key={item.label} className={cls} style={style}>{inner}</button>
+                )
+              })}
             </div>
           </div>
         ))}
@@ -92,9 +101,7 @@ export default function ProfileClient({ member }: { member: MemberInfo }) {
         </div>
 
         <div className="px-[22px]">
-          <button
-            onClick={() => startTransition(() => logoutAction())}
-            disabled={pending}
+          <button onClick={() => startTransition(() => logoutAction())} disabled={pending}
             className="w-full py-3.5 rounded-2xl text-[14px] disabled:opacity-50"
             style={{ border: '1px solid var(--line)', color: 'var(--dim)' }}>
             {pending ? 'Signing out…' : 'Sign out'}

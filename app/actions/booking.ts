@@ -96,6 +96,44 @@ export async function cancelBookingAction(bookingId: string) {
   revalidatePath('/schedule')
 }
 
+export async function buyPackageAction(tier: '5' | '10' | '20') {
+  const session = await getIronSession<SessionData>(cookies(), sessionOptions)
+  if (!session.memberId) redirect('/login')
+
+  const total = parseInt(tier, 10)
+  const expiresAt = new Date()
+  expiresAt.setMonth(expiresAt.getMonth() + 3)
+
+  await prisma.package.create({
+    data: { memberId: session.memberId, total, remaining: total, expiresAt },
+  })
+
+  revalidatePath('/dashboard')
+  revalidatePath('/packages')
+  redirect('/dashboard')
+}
+
+export async function adminCancelBookingAction(bookingId: string) {
+  const session = await getIronSession<SessionData>(cookies(), sessionOptions)
+  if (!session.memberId || !session.isAdmin) redirect('/login')
+
+  const booking = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } })
+
+  await prisma.booking.update({ where: { id: bookingId }, data: { status: 'cancelled' } })
+
+  // Refund package credit to member
+  const pkg = await prisma.package.findFirst({
+    where: { memberId: booking.memberId, expiresAt: { gt: new Date() } },
+    orderBy: { expiresAt: 'asc' },
+  })
+  if (pkg) {
+    await prisma.package.update({ where: { id: pkg.id }, data: { remaining: { increment: 1 } } })
+  }
+
+  revalidatePath('/admin/bookings')
+  revalidatePath('/admin/calendar')
+}
+
 export async function getAvailableSlots(teacherId: string, serviceSlug: string, dateIso: string) {
   const date = new Date(dateIso)
   // dayOfWeek: 0=Mon … 6=Sun (matching seed data)

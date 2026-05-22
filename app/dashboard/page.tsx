@@ -111,9 +111,9 @@ export default async function DashboardPage() {
               <Link href="/book/service" className="flex-1 text-center py-2 rounded-xl text-[12px]" style={{ border: '1px solid var(--line)' }}>
                 Book a class
               </Link>
-              <button className="flex-1 text-center py-2 rounded-xl text-[12px]" style={{ border: '1px solid var(--line)' }}>
+              <Link href="/packages" className="flex-1 text-center py-2 rounded-xl text-[12px]" style={{ border: '1px solid var(--line)' }}>
                 Buy more
-              </button>
+              </Link>
             </div>
           </div>
         ) : (

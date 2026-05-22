@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
+import { adminCancelBookingAction } from '@/app/actions/booking'
 
 interface Booking {
   id: string; bookingRef: string; clientName: string; serviceName: string
@@ -38,6 +39,17 @@ function addDays(iso: string, n: number) {
 export default function AdminBookingsClient({ dateStr, bookings }: { dateStr: string; bookings: Booking[] }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
+  const [cancelPending, startCancel] = useTransition()
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+
+  const handleCancel = (id: string) => {
+    setCancellingId(id)
+    startCancel(async () => {
+      await adminCancelBookingAction(id)
+      router.refresh()
+      setCancellingId(null)
+    })
+  }
 
   const filtered = bookings.filter(b =>
     b.clientName.toLowerCase().includes(search.toLowerCase()) ||
@@ -111,8 +123,19 @@ export default function AdminBookingsClient({ dateStr, bookings }: { dateStr: st
                     <td className="py-3.5 pr-6" style={{ color: 'var(--dim)' }}>{b.studioName}</td>
                     <td className="py-3.5 pr-6 font-mono text-[11px]" style={{ color: 'var(--dim)' }}>{b.bookingRef}</td>
                     <td className="py-3.5">
-                      <span className="px-2.5 py-1 rounded-full text-[11px] capitalize"
-                        style={{ background: sc.bg, color: sc.ink }}>{b.status}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-full text-[11px] capitalize"
+                          style={{ background: sc.bg, color: sc.ink }}>{b.status}</span>
+                        {b.status === 'confirmed' && (
+                          <button
+                            onClick={() => handleCancel(b.id)}
+                            disabled={cancelPending && cancellingId === b.id}
+                            className="text-[11px] disabled:opacity-40"
+                            style={{ color: '#991B1B' }}>
+                            {cancelPending && cancellingId === b.id ? '…' : 'Cancel'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )

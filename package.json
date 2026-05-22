@@ -10,7 +10,11 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:railway": "PLAYWRIGHT_BASE_URL=https://rio-yoga-nextjs-production.up.railway.app playwright test"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -25,6 +29,7 @@
     "node": ">=20.19.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@prisma/client": "^5.22.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
